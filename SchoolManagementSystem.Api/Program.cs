@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using SchoolManagementSystem.Api.Middleware;
 using SchoolManagementSystem.DataAccess.Context;
 using SchoolManagementSystem.Domain.Entities;
 
@@ -41,6 +42,8 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
+
+app.UseGlobalExceptionHandling();
 
 app.UseHttpsRedirection();
 
