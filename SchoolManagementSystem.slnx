@@ -1,3 +1,7 @@
 <Solution>
   <Project Path="SchoolManagementSystem.Api/SchoolManagementSystem.Api.csproj" />
+  <Project Path="SchoolManagementSystem.Business/SchoolManagementSystem.Business.csproj" />
+  <Project Path="SchoolManagementSystem.DataAccess/SchoolManagementSystem.DataAccess.csproj" />
+  <Project Path="SchoolManagementSystem.Domain/SchoolManagementSystem.Domain.csproj" />
+  <Project Path="SchoolManagementSystem.Presentation/SchoolManagementSystem.Presentation.csproj" />
 </Solution>

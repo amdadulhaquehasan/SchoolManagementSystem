@@ -11,4 +11,13 @@
     <PackageReference Include="Microsoft.OpenApi" Version="3.9.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Controllers\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SchoolManagementSystem.Business\SchoolManagementSystem.Business.csproj" />
+    <ProjectReference Include="..\SchoolManagementSystem.Presentation\SchoolManagementSystem.Presentation.csproj" />
+  </ItemGroup>
+
 </Project>
