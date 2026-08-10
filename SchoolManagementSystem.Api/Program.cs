@@ -62,6 +62,28 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 
 
+const string CorsPolicyName = "AllowConfiguredFrontends";
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(CorsPolicyName, policy =>
+    {
+        if (allowedOrigins.Length > 0)
+        {
+            policy.WithOrigins(allowedOrigins)
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
+        }
+        else
+        {
+            policy.AllowAnyHeader().AllowAnyMethod().SetIsOriginAllowed(_ => true).AllowCredentials();
+        }
+    });
+});
+
+
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -72,10 +94,9 @@ builder.Services.AddScoped<IAssignmentService, AssignmentService>();
 builder.Services.AddScoped<ISubmissionService, SubmissionService>();
 builder.Services.AddScoped<IFileService, FileService>();
 
-// Add services to the container.
 
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -115,17 +136,25 @@ using (var scope = app.Services.CreateScope())
     await DbInitializer.SeedAsync(scope.ServiceProvider);
 }
 
-// Configure the HTTP request pipeline.
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "School Management System API v1");
+    });
 }
 
 app.UseGlobalExceptionHandling();
 
 app.UseHttpsRedirection();
 
+app.UseStaticFiles(); 
+
+app.UseCors(CorsPolicyName);
+
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
