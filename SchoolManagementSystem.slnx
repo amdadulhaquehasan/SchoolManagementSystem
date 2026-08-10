@@ -4,4 +4,5 @@
   <Project Path="SchoolManagementSystem.DataAccess/SchoolManagementSystem.DataAccess.csproj" />
   <Project Path="SchoolManagementSystem.Domain/SchoolManagementSystem.Domain.csproj" />
   <Project Path="SchoolManagementSystem.Presentation/SchoolManagementSystem.Presentation.csproj" />
+  <Project Path="SchoolManagementSystem.Tests/SchoolManagementSystem.Tests.csproj" Id="02224544-5af3-4e9a-adaa-2a902baac218" />
 </Solution>
