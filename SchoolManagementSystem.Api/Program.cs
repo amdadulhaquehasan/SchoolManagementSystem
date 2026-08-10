@@ -1,10 +1,15 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using SchoolManagementSystem.Api.Middleware;
+using SchoolManagementSystem.Business.Interfaces;
+using SchoolManagementSystem.Business.Services;
+using SchoolManagementSystem.Business.Settings;
 using SchoolManagementSystem.DataAccess.Context;
 using SchoolManagementSystem.Domain.Entities;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.Configure<FileStorageSettings>(builder.Configuration.GetSection(FileStorageSettings.SectionName));
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -23,6 +28,9 @@ builder.Services
     })
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
+
+
+builder.Services.AddScoped<IFileService, FileService>();
 
 // Add services to the container.
 
