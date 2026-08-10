@@ -1,4 +1,3 @@
-using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +8,10 @@ using SchoolManagementSystem.Business.Interfaces;
 using SchoolManagementSystem.Business.Services;
 using SchoolManagementSystem.Business.Settings;
 using SchoolManagementSystem.DataAccess.Context;
+using SchoolManagementSystem.DataAccess.Repositories.Implementations;
+using SchoolManagementSystem.DataAccess.Repositories.Interfaces;
 using SchoolManagementSystem.Domain.Entities;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -60,6 +62,14 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 
 
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserManagementService, UserManagementService>();
+builder.Services.AddScoped<IClassCourseService, ClassCourseService>();
+builder.Services.AddScoped<ISubjectService, SubjectService>();
+builder.Services.AddScoped<IAssignmentService, AssignmentService>();
+builder.Services.AddScoped<ISubmissionService, SubmissionService>();
 builder.Services.AddScoped<IFileService, FileService>();
 
 // Add services to the container.

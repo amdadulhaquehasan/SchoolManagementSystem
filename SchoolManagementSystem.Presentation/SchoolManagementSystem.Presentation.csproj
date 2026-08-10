@@ -7,12 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Http.Features" Version="5.0.17" />
+    <ProjectReference Include="..\SchoolManagementSystem.Domain\SchoolManagementSystem.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SchoolManagementSystem.Business\SchoolManagementSystem.Business.csproj" />
-    <ProjectReference Include="..\SchoolManagementSystem.Domain\SchoolManagementSystem.Domain.csproj" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
 </Project>
