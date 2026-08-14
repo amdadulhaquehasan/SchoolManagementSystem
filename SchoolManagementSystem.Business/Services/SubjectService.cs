@@ -136,6 +136,8 @@ public class SubjectService : ISubjectService
         Description = s.Description,
         ClassCourseId = s.ClassCourseId,
         ClassCourseName = s.ClassCourse?.Name ?? string.Empty,
-        AssignedTeacherNames = s.TeacherAssignments?.Select(t => t.Teacher.FullName).ToList() ?? new List<string>()
+        AssignedTeachers = s.TeacherAssignments?
+            .Select(t => new AssignedTeacherDto { Id = t.TeacherId, FullName = t.Teacher.FullName })
+            .ToList() ?? new List<AssignedTeacherDto>()
     };
 }
