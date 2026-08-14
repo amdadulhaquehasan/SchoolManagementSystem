@@ -1,0 +1,38 @@
+:root {
+  --sms-bg: #f5f7fa;
+}
+
+body {
+  background-color: var(--sms-bg);
+  min-height: 100vh;
+}
+
+.page-container {
+  min-height: calc(100vh - 76px);
+  padding-bottom: 3rem;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.text-truncate-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card-hover {
+  transition: box-shadow 0.15s ease-in-out, transform 0.15s ease-in-out;
+}
+
+.card-hover:hover {
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+
+.table-responsive-wrapper {
+  overflow-x: auto;
+}
