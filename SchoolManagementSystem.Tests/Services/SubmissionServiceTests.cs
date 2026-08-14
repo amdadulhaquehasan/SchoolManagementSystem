@@ -2,6 +2,7 @@
 using Moq;
 using SchoolManagementSystem.Business.Interfaces;
 using SchoolManagementSystem.Business.Services;
+using SchoolManagementSystem.DataAccess.Context;
 using SchoolManagementSystem.DataAccess.Exceptions;
 using SchoolManagementSystem.DataAccess.Repositories.Implementations;
 using SchoolManagementSystem.Domain.Entities;
@@ -17,17 +18,34 @@ public class SubmissionServiceTests
     private const string TeacherId = "teacher-1";
     private const string StudentId = "student-1";
 
-    private static (SubmissionService service, UnitOfWork uow, Mock<IFileService> fileServiceMock) CreateService()
+    private static (SubmissionService service, UnitOfWork uow, ApplicationDbContext context, Mock<IFileService> fileServiceMock) CreateService()
     {
         var context = TestDbContextFactory.Create();
         var uow = new UnitOfWork(context);
         var fileServiceMock = new Mock<IFileService>();
         var service = new SubmissionService(uow, fileServiceMock.Object);
-        return (service, uow, fileServiceMock);
+        return (service, uow, context, fileServiceMock);
     }
 
-    private static async Task<Assignment> SeedPublishedAssignmentAsync(UnitOfWork uow, DateTime deadline, bool enrollStudent = true)
+    private static async Task SeedUserAsync(ApplicationDbContext context, string id, string firstName = "Test", string lastName = "User")
     {
+        context.Users.Add(new ApplicationUser
+        {
+            Id = id,
+            UserName = $"{id}@test.local",
+            Email = $"{id}@test.local",
+            FirstName = firstName,
+            LastName = lastName
+        });
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task<Assignment> SeedPublishedAssignmentAsync(
+        UnitOfWork uow, ApplicationDbContext context, DateTime deadline, bool enrollStudent = true)
+    {
+        await SeedUserAsync(context, TeacherId, "Teacher", TeacherId);
+        await SeedUserAsync(context, StudentId, "Student", StudentId);
+
         var classCourse = new ClassCourse { Name = "Grade 10 - A" };
         await uow.ClassCourses.AddAsync(classCourse);
         await uow.SaveChangesAsync();
@@ -61,8 +79,8 @@ public class SubmissionServiceTests
     [Fact]
     public async Task SubmitAsync_WithTextAnswer_CreatesSubmittedStatus()
     {
-        var (service, uow, _) = CreateService();
-        var assignment = await SeedPublishedAssignmentAsync(uow, DateTime.UtcNow.AddDays(2));
+        var (service, uow, context, _) = CreateService();
+        var assignment = await SeedPublishedAssignmentAsync(uow, context, DateTime.UtcNow.AddDays(2));
 
         var result = await service.SubmitAsync(assignment.Id, StudentId, new CreateSubmissionDto { TextAnswer = "My answer" });
 
@@ -73,8 +91,8 @@ public class SubmissionServiceTests
     [Fact]
     public async Task SubmitAsync_AfterDeadline_MarksAsLate()
     {
-        var (service, uow, _) = CreateService();
-        var assignment = await SeedPublishedAssignmentAsync(uow, DateTime.UtcNow.AddSeconds(-1));
+        var (service, uow, context, _) = CreateService();
+        var assignment = await SeedPublishedAssignmentAsync(uow, context, DateTime.UtcNow.AddSeconds(-1));
 
         var result = await service.SubmitAsync(assignment.Id, StudentId, new CreateSubmissionDto { TextAnswer = "Late answer" });
 
@@ -84,8 +102,8 @@ public class SubmissionServiceTests
     [Fact]
     public async Task SubmitAsync_WhenStudentNotEnrolled_ThrowsForbidden()
     {
-        var (service, uow, _) = CreateService();
-        var assignment = await SeedPublishedAssignmentAsync(uow, DateTime.UtcNow.AddDays(2), enrollStudent: false);
+        var (service, uow, context, _) = CreateService();
+        var assignment = await SeedPublishedAssignmentAsync(uow, context, DateTime.UtcNow.AddDays(2), enrollStudent: false);
 
         Func<Task> act = () => service.SubmitAsync(assignment.Id, StudentId, new CreateSubmissionDto { TextAnswer = "answer" });
 
@@ -95,8 +113,8 @@ public class SubmissionServiceTests
     [Fact]
     public async Task SubmitAsync_WithoutTextOrFile_ThrowsBadRequest()
     {
-        var (service, uow, _) = CreateService();
-        var assignment = await SeedPublishedAssignmentAsync(uow, DateTime.UtcNow.AddDays(2));
+        var (service, uow, context, _) = CreateService();
+        var assignment = await SeedPublishedAssignmentAsync(uow, context, DateTime.UtcNow.AddDays(2));
 
         Func<Task> act = () => service.SubmitAsync(assignment.Id, StudentId, new CreateSubmissionDto());
 
@@ -106,8 +124,8 @@ public class SubmissionServiceTests
     [Fact]
     public async Task UpdateAsync_AfterDeadline_ThrowsBadRequest()
     {
-        var (service, uow, _) = CreateService();
-        var assignment = await SeedPublishedAssignmentAsync(uow, DateTime.UtcNow.AddSeconds(2));
+        var (service, uow, context, _) = CreateService();
+        var assignment = await SeedPublishedAssignmentAsync(uow, context, DateTime.UtcNow.AddSeconds(2));
 
         var submission = await service.SubmitAsync(assignment.Id, StudentId, new CreateSubmissionDto { TextAnswer = "answer" });
 
@@ -121,8 +139,8 @@ public class SubmissionServiceTests
     [Fact]
     public async Task GradeAsync_WithMarksAboveMax_ThrowsBadRequest()
     {
-        var (service, uow, _) = CreateService();
-        var assignment = await SeedPublishedAssignmentAsync(uow, DateTime.UtcNow.AddDays(2));
+        var (service, uow, context, _) = CreateService();
+        var assignment = await SeedPublishedAssignmentAsync(uow, context, DateTime.UtcNow.AddDays(2));
         var submission = await service.SubmitAsync(assignment.Id, StudentId, new CreateSubmissionDto { TextAnswer = "answer" });
 
         Func<Task> act = () => service.GradeAsync(submission.Id, TeacherId, new GradeSubmissionDto { MarksObtained = 999 });
@@ -133,12 +151,14 @@ public class SubmissionServiceTests
     [Fact]
     public async Task GradeAsync_ByNonOwningTeacher_ThrowsForbidden()
     {
-        var (service, uow, _) = CreateService();
-        var assignment = await SeedPublishedAssignmentAsync(uow, DateTime.UtcNow.AddDays(2));
+        var (service, uow, context, _) = CreateService();
+        var assignment = await SeedPublishedAssignmentAsync(uow, context, DateTime.UtcNow.AddDays(2));
         var submission = await service.SubmitAsync(assignment.Id, StudentId, new CreateSubmissionDto { TextAnswer = "answer" });
+        await SeedUserAsync(context, "another-teacher", "Another", "Teacher");
 
         Func<Task> act = () => service.GradeAsync(submission.Id, "another-teacher", new GradeSubmissionDto { MarksObtained = 80 });
 
         await act.Should().ThrowAsync<ForbiddenAccessException>();
     }
 }
+

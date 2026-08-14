@@ -2,6 +2,7 @@
 using Moq;
 using SchoolManagementSystem.Business.Interfaces;
 using SchoolManagementSystem.Business.Services;
+using SchoolManagementSystem.DataAccess.Context;
 using SchoolManagementSystem.DataAccess.Exceptions;
 using SchoolManagementSystem.DataAccess.Repositories.Implementations;
 using SchoolManagementSystem.Domain.Entities;
@@ -14,17 +15,33 @@ namespace SchoolManagementSystem.Tests.Services;
 
 public class AssignmentServiceTests
 {
-    private static (AssignmentService service, UnitOfWork uow) CreateService(Mock<IFileService>? fileServiceMock = null)
+    private static (AssignmentService service, UnitOfWork uow, ApplicationDbContext context) CreateService(Mock<IFileService>? fileServiceMock = null)
     {
         var context = TestDbContextFactory.Create();
         var uow = new UnitOfWork(context);
         fileServiceMock ??= new Mock<IFileService>();
         var service = new AssignmentService(uow, fileServiceMock.Object);
-        return (service, uow);
+        return (service, uow, context);
     }
 
-    private static async Task<(ClassCourse classCourse, Subject subject)> SeedClassAndSubjectAsync(UnitOfWork uow, string teacherId)
+    private static async Task SeedUserAsync(ApplicationDbContext context, string id, string firstName = "Test", string lastName = "User")
     {
+        context.Users.Add(new ApplicationUser
+        {
+            Id = id,
+            UserName = $"{id}@test.local",
+            Email = $"{id}@test.local",
+            FirstName = firstName,
+            LastName = lastName
+        });
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task<(ClassCourse classCourse, Subject subject)> SeedClassAndSubjectAsync(
+        UnitOfWork uow, ApplicationDbContext context, string teacherId)
+    {
+        await SeedUserAsync(context, teacherId, "Teacher", teacherId);
+
         var classCourse = new ClassCourse { Name = "Grade 10 - A" };
         await uow.ClassCourses.AddAsync(classCourse);
         await uow.SaveChangesAsync();
@@ -42,9 +59,9 @@ public class AssignmentServiceTests
     [Fact]
     public async Task CreateAsync_WithValidData_CreatesPublishedAssignment()
     {
-        var (service, uow) = CreateService();
+        var (service, uow, context) = CreateService();
         const string teacherId = "teacher-1";
-        var (classCourse, subject) = await SeedClassAndSubjectAsync(uow, teacherId);
+        var (classCourse, subject) = await SeedClassAndSubjectAsync(uow, context, teacherId);
 
         var dto = new CreateAssignmentDto
         {
@@ -67,8 +84,9 @@ public class AssignmentServiceTests
     [Fact]
     public async Task CreateAsync_WhenTeacherNotAssignedToSubject_ThrowsForbidden()
     {
-        var (service, uow) = CreateService();
-        var (classCourse, subject) = await SeedClassAndSubjectAsync(uow, "some-other-teacher");
+        var (service, uow, context) = CreateService();
+        var (classCourse, subject) = await SeedClassAndSubjectAsync(uow, context, "some-other-teacher");
+        await SeedUserAsync(context, "teacher-not-assigned");
 
         var dto = new CreateAssignmentDto
         {
@@ -88,9 +106,9 @@ public class AssignmentServiceTests
     [Fact]
     public async Task CreateAsync_WithoutDescriptionOrFile_ThrowsBadRequest()
     {
-        var (service, uow) = CreateService();
+        var (service, uow, context) = CreateService();
         const string teacherId = "teacher-1";
-        var (classCourse, subject) = await SeedClassAndSubjectAsync(uow, teacherId);
+        var (classCourse, subject) = await SeedClassAndSubjectAsync(uow, context, teacherId);
 
         var dto = new CreateAssignmentDto
         {
@@ -110,10 +128,11 @@ public class AssignmentServiceTests
     [Fact]
     public async Task GetForStudentAsync_OnlyReturnsPublishedAssignmentsForEnrolledClasses()
     {
-        var (service, uow) = CreateService();
+        var (service, uow, context) = CreateService();
         const string teacherId = "teacher-1";
         const string studentId = "student-1";
-        var (classCourse, subject) = await SeedClassAndSubjectAsync(uow, teacherId);
+        var (classCourse, subject) = await SeedClassAndSubjectAsync(uow, context, teacherId);
+        await SeedUserAsync(context, studentId, "Student", studentId);
 
         await uow.StudentClassEnrollments.AddAsync(new StudentClassEnrollment { StudentId = studentId, ClassCourseId = classCourse.Id });
 
